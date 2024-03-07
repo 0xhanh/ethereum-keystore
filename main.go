@@ -106,6 +106,16 @@ func promptForContinue() {
 	}
 }
 
+func promptForPassword(prompt string) (string, error) {
+	fmt.Print(prompt)
+	password, err := term.ReadPassword(int(os.Stdin.Fd()))
+	fmt.Println()
+	if err != nil {
+		return "", err
+	}
+	return string(password), nil
+}
+
 func readKey(path string) (common.Address, []byte, error) {
 	b, err := os.ReadFile(path)
 	if err != nil {
@@ -140,13 +150,14 @@ func readKeystoreKey(addr common.Address) ([]byte, error) {
 }
 
 func decryptKey(key []byte) (*ecdsa.PrivateKey, error) {
-	fmt.Printf(">>>Password: ")
-	passphrase, err := term.ReadPassword(int(os.Stdin.Fd()))
-	fmt.Println()
+	passphrase, err := promptForPassword("Enter password: ")
 	if err != nil {
 		return nil, err
 	}
-	k, err := keystore.DecryptKey(key, string(passphrase))
+
+	fmt.Println()
+
+	k, err := keystore.DecryptKey(key, passphrase)
 	if err != nil {
 		return nil, err
 	}
@@ -154,12 +165,12 @@ func decryptKey(key []byte) (*ecdsa.PrivateKey, error) {
 }
 
 func generateAccount() (string, error) {
-	fmt.Printf(">Passphrase: ")
-	passphrase, err := term.ReadPassword(int(os.Stdin.Fd()))
-	fmt.Println()
+	passphrase, err := promptForPassword("Enter password: ")
 	if err != nil {
 		return "", err
 	}
+	fmt.Println()
+
 	if len(passphrase) < 2 {
 		fmt.Println("Input a passphrase (min=2)")
 		return "", fmt.Errorf("passphrase too short")
@@ -199,21 +210,20 @@ func readPrompt(title string, prompt string) (string, error) {
 }
 
 func importKey() (*accounts.Account, error) {
-	fmt.Printf(">Enter a private key?: ")
-	k, err := term.ReadPassword(int(os.Stdin.Fd()))
-	fmt.Println()
+	k, err := promptForPassword("Enter a private key: ")
 	if err != nil {
 		return nil, err
 	}
-	pkey := strings.TrimPrefix(string(k), "0x")
+	fmt.Println()
+	pkey := strings.TrimPrefix(k, "0x")
 
-	fmt.Printf(">Enter a passphrase: ")
-	k, err = term.ReadPassword(int(os.Stdin.Fd()))
-	fmt.Println()
+	passphrase, err := promptForPassword("Enter password: ")
+
 	if err != nil {
 		return nil, err
 	}
-	passphrase := string(k)
+
+	fmt.Println()
 
 	privateKey, err := crypto.HexToECDSA(pkey)
 	if err != nil {
@@ -231,13 +241,12 @@ func importKey() (*accounts.Account, error) {
 }
 
 func showAddress() error {
-	fmt.Printf(">Enter a private key: ")
-	k, err := term.ReadPassword(int(os.Stdin.Fd()))
-	fmt.Println()
+	k, err := promptForPassword("Enter a private key: ")
 	if err != nil {
 		return err
 	}
-	pkey := strings.TrimPrefix(string(k), "0x")
+	fmt.Println()
+	pkey := strings.TrimPrefix(k, "0x")
 
 	privateKey, err := crypto.HexToECDSA(pkey)
 	if err != nil {
